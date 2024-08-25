@@ -3,91 +3,188 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Meine Webseite</title>
+    <title>Canvas Konfiguration</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
             margin: 0;
-            padding: 0;
-            background-color: #f4f4f4;
+            background-color: #f0f0f0;
         }
-        header {
-            background-color: #333;
-            color: #fff;
-            padding: 1em 0;
-            text-align: center;
-        }
-        nav {
-            text-align: center;
-            margin: 1em 0;
-        }
-        nav a {
-            margin: 0 1em;
-            text-decoration: none;
-            color: #333;
-        }
-        main {
-            padding: 1em;
-            max-width: 800px;
-            margin: 2em auto;
-            background-color: #fff;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
-        }
-        footer {
-            background-color: #333;
-            color: #fff;
-            text-align: center;
-            padding: 1em 0;
-            position: fixed;
-            width: 100%;
-            bottom: 0;
+        canvas {
+            image-rendering: pixelated;
+            border: 1px solid #000;
         }
     </style>
 </head>
 <body>
+    <canvas id="myCanvas"></canvas>
 
-<header>
-    <h1>Willkommen auf meiner Webseite</h1>
-</header>
+    <script>
+        // Funktion zum Extrahieren des 'gtcp'-Parameters aus der URL
+        function getParameterByName(name, url) {
+            if (!url) url = window.location.href;
+            name = name.replace(/[\[\]]/g, '\\$&');
+            const regex = new RegExp('[?&]' + name + '(=([^&#]*)|&|#|$)');
+            const results = regex.exec(url);
+            if (!results) return null;
+            if (!results[2]) return '';
+            return decodeURIComponent(results[2].replace(/\+/g, ' '));
+        }
 
-<nav>
-    <a href="#home">Startseite</a>
-    <a href="#about">Über mich</a>
-    <a href="#contact">Kontakt</a>
-</nav>
+        // Funktion zum Zeichnen einer Linie (Bresenham-Algorithmus)
+        function drawLine(context, x0, y0, x1, y1, color) {
+            let dx = Math.abs(x1 - x0);
+            let dy = Math.abs(y1 - y0);
+            let sx = (x0 < x1) ? 1 : -1;
+            let sy = (y0 < y1) ? 1 : -1;
+            let err = dx - dy;
 
-<main>
-    <section id="home">
-        <h2>Startseite</h2>
-        <p>Dies ist die Startseite meiner Webseite. Hier finden Sie allgemeine Informationen und Neuigkeiten.</p>
-    </section>
+            while (true) {
+                context.fillStyle = color;
+                context.fillRect(x0, y0, 1, 1);
 
-    <section id="about">
-        <h2>Über mich</h2>
-        <p>Mein Name ist Gilered_Thalion und ich freue mich, Sie auf meiner Webseite begrüßen zu dürfen. Hier erfahren Sie mehr über mich und meine Interessen.</p>
-    </section>
+                if (x0 === x1 && y0 === y1) break;
+                let e2 = 2 * err;
+                if (e2 > -dy) {
+                    err -= dy;
+                    x0 += sx;
+                }
+                if (e2 < dx) {
+                    err += dx;
+                    y0 += sy;
+                }
+            }
+        }
 
-    <section id="contact">
-        <h2>Kontakt</h2>
-        <p>Sie können mich über das folgende Formular kontaktieren:</p>
-        <form action="#" method="post">
-            <label for="name">Name:</label>
-            <input type="text" id="name" name="name" required>
-            <br>
-            <label for="email">Email:</label>
-            <input type="email" id="email" name="email" required>
-            <br>
-            <label for="message">Nachricht:</label>
-            <textarea id="message" name="message" rows="4" required></textarea>
-            <br>
-            <button type="submit">Senden</button>
-        </form>
-    </section>
-</main>
+        // Funktion zum Zeichnen eines Würfels (Rechtecks)
+        function drawCube(context, x0, y0, x1, y1, color, filled) {
+            context.strokeStyle = color;
+            context.fillStyle = color;
+            if (filled === 'true') {
+                drawLine(context, x0, y0, x1, y0, color);
+                drawLine(context, x0, y0, x0, y1, color);
+                drawLine(context, x1, y1, x0, y1, color);
+                drawLine(context, x1, y1, x1, y0, color);
+                context.fillRect(x0, y0, x1 - x0, y1 - y0);
+            } else {
+                drawLine(context, x0, y0, x1, y0, color);
+                drawLine(context, x0, y0, x0, y1, color);
+                drawLine(context, x1, y1, x0, y1, color);
+                drawLine(context, x1, y1, x1, y0, color);
+            }
+        }
 
-<footer>
-    <p>&copy; 2024 Gilered_Thalion Alle Rechte vorbehalten.</p>
-</footer>
+        // Canvas-Setup
+        const canvas = document.getElementById('myCanvas');
+        const ctx = canvas.getContext('2d');
 
+        // Standardwerte für Canvas
+        let canvasWidth = 800;
+        let canvasHeight = 600;
+        let bgColor = '#ffffff';
+
+        // Wert des 'gtcp'-Parameters aus der URL holen
+        const gtcpValue = getParameterByName('gtcp');
+
+        if (gtcpValue) {
+            // Zeilenweise Verarbeitung des gtcp-Werts
+            const lines = gtcpValue.split('\\b\\');
+            lines.forEach(line => {
+                let found = false;
+                let parameter = '';
+
+                if (line.startsWith('width=')) {
+                    canvasWidth = parseInt(line.substring('width='.length), 10) || canvasWidth;
+                    found = true;
+                    parameter = 'width';
+                } else if (line.startsWith('height=')) {
+                    canvasHeight = parseInt(line.substring('height='.length), 10) || canvasHeight;
+                    found = true;
+                    parameter = 'height';
+                } else if (line.startsWith('bgColor=')) {
+                    bgColor = line.substring('bgColor='.length) || bgColor;
+                    found = true;
+                    parameter = 'bgColor';
+                } else if (line.startsWith('pixel=')) {
+                    // Format: pixel=x,y,color
+                    const pixelParams = line.substring('pixel='.length).split(',');
+                    if (pixelParams.length === 3) {
+                        const x = parseInt(pixelParams[0], 10);
+                        const y = parseInt(pixelParams[1], 10);
+                        const color = pixelParams[2];
+                        ctx.fillStyle = color;
+                        ctx.fillRect(x, y, 1, 1);
+                        found = true;
+                        parameter = `pixel (${x},${y})`;
+                    }
+                } else if (line.startsWith('line=')) {
+                    // Format: line=x0,y0,x1,y1,color
+                    const lineParams = line.substring('line='.length).split(',');
+                    if (lineParams.length === 5) {
+                        const x0 = parseInt(lineParams[0], 10);
+                        const y0 = parseInt(lineParams[1], 10);
+                        const x1 = parseInt(lineParams[2], 10);
+                        const y1 = parseInt(lineParams[3], 10);
+                        const color = lineParams[4];
+                        drawLine(ctx, x0, y0, x1, y1, color);
+                        found = true;
+                        parameter = `line (${x0},${y0}) -> (${x1},${y1})`;
+                    }
+                } else if (line.startsWith('cube=')) {
+                    // Format: cube=x0,y0,x1,y1,color,filled(true/false)
+                    const cubeParams = line.substring('cube='.length).split(',');
+                    if (cubeParams.length === 6) {
+                        const x0 = parseInt(cubeParams[0], 10);
+                        const y0 = parseInt(cubeParams[1], 10);
+                        const x1 = parseInt(cubeParams[2], 10);
+                        const y1 = parseInt(cubeParams[3], 10);
+                        const color = cubeParams[4];
+                        const filled = cubeParams[5];
+                        drawCube(ctx, x0, y0, x1, y1, color, filled);
+                        found = true;
+                        parameter = `cube (${x0},${y0}) -> (${x1},${y1}) mit Farbe: ${color} und gefüllt: ${filled}`;
+                    }
+                }
+
+                // Anwendung der gefundenen Parameter
+                if (found) {
+                    console.log(`${line} --> Parameter "${parameter}" erkannt und angewendet.`);
+
+                    // Wenn eine Änderung an Breite, Höhe oder Hintergrundfarbe erkannt wird, wenden wir sie an
+                    if (parameter === 'width' || parameter === 'height' || parameter === 'bgColor') {
+                        canvas.width = canvasWidth;
+                        canvas.height = canvasHeight;
+                        ctx.fillStyle = bgColor;
+                        ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    }
+                } else {
+                    console.log(`${line}`);
+                }
+            });
+
+            // Skalieren des Canvas, um die beste Größe im Fenster zu erreichen
+            const scaleFactor = Math.min(
+                Math.floor(window.innerWidth / canvasWidth),
+                Math.floor(window.innerHeight / canvasHeight)
+            );
+
+            canvas.style.width = `${canvasWidth * scaleFactor}px`;
+            canvas.style.height = `${canvasHeight * scaleFactor}px`;
+
+            console.log('Canvas konfiguriert:');
+            console.log('Breite:', canvasWidth);
+            console.log('Höhe:', canvasHeight);
+            console.log('Hintergrundfarbe:', bgColor);
+            console.log('Canvas skaliert:');
+            console.log('Skalierungsfaktor:', scaleFactor);
+            console.log('Angezeigte Breite:', canvas.style.width);
+            console.log('Angezeigte Höhe:', canvas.style.height);
+        } else {
+            console.log("Kein GTCP-Parameter gefunden.");
+        }
+    </script>
 </body>
 </html>
